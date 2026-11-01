@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net; media-src 'self' blob:; worker-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <script src="../lib/sin-marco.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <title>Panel · Dreams Can Bloom</title>
+  <link rel="stylesheet" href="../css/portal.css">
+  <script type="module" src="./panel.js"></script>
+</head>
+<body>
+<main class="ancho">
+  <header class="marca"><span class="logo">Dreams<br>Can<br>Bloom</span><span class="seccion">Panel</span></header>
+  <noscript><p class="aviso aviso-error">Necesitas activar JavaScript en tu navegador.</p></noscript>
+
+  <section data-pantalla="cargando">
+    <h1>Cargando…</h1>
+  </section>
+
+  <section data-pantalla="error" hidden>
+    <h1>No se puede abrir el panel</h1>
+    <p id="error-texto" class="aviso aviso-error"></p>
+    <button type="button" id="btn-salir-error">Salir</button>
+  </section>
+
+  <section data-pantalla="login" hidden>
+    <h1>Entrar al panel</h1>
+    <form id="form-login" novalidate>
+      <label for="correo">Correo</label>
+      <input id="correo" type="email" autocomplete="username" required>
+      <label for="clave">Contraseña</label>
+      <input id="clave" type="password" autocomplete="current-password" required>
+      <p id="login-aviso" class="aviso" hidden role="alert"></p>
+      <button type="submit" class="primario" id="btn-login">Entrar</button>
+    </form>
+  </section>
+
+  <section data-pantalla="panel" hidden>
+    <header class="cabecera">
+      <h1 id="titulo-panel">Panel</h1>
+      <div><span id="quien" class="suave"></span> <button type="button" id="btn-salir">Salir</button></div>
+    </header>
+    <nav class="pestanas" role="tablist" aria-label="Secciones del panel">
+      <button type="button" role="tab" data-tab="hoy" aria-controls="tab-hoy">Hoy</button>
+      <button type="button" role="tab" data-tab="alertas" aria-controls="tab-alertas">Alertas</button>
+      <button type="button" role="tab" data-tab="reportes" aria-controls="tab-reportes">Reportes por aprobar</button>
+      <button type="button" role="tab" data-tab="quincena" aria-controls="tab-quincena">Quincena</button>
+      <button type="button" role="tab" data-tab="efectivo" aria-controls="tab-efectivo">Efectivo de campo</button>
+      <button type="button" role="tab" data-tab="captura" aria-controls="tab-captura">Captura degradada</button>
+    </nav>
+    <div id="tab-hoy" role="tabpanel" data-tabpanel="hoy" hidden></div>
+    <div id="tab-alertas" role="tabpanel" data-tabpanel="alertas" hidden></div>
+    <div id="tab-reportes" role="tabpanel" data-tabpanel="reportes" hidden></div>
+    <div id="tab-quincena" role="tabpanel" data-tabpanel="quincena" hidden></div>
+    <div id="tab-efectivo" role="tabpanel" data-tabpanel="efectivo" hidden></div>
+    <div id="tab-captura" role="tabpanel" data-tabpanel="captura" hidden></div>
+  </section>
+</main>
+<!-- Planilla de entrega de efectivo: solo se ve al imprimir. -->
+<div id="planilla-impresion" class="solo-impresion planilla" aria-hidden="true"></div>
+</body>
+</html>

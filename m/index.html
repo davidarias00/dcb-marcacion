@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net; media-src 'self' blob:; worker-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <script src="../lib/sin-marco.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#f5efe4">
+  <title>Marcar · Dreams Can Bloom</title>
+  <link rel="stylesheet" href="../css/portal.css">
+  <script type="module" src="./marcar.js"></script>
+</head>
+<body>
+<main>
+  <header class="marca"><span class="logo">Dreams<br>Can<br>Bloom</span><span class="seccion">Marcación</span></header>
+
+  <noscript><p class="aviso aviso-error">Para marcar necesitas activar JavaScript en tu navegador.</p></noscript>
+
+  <section data-pantalla="cargando">
+    <h1>Cargando…</h1>
+    <p class="suave">Si esta pantalla no cambia, revisa la señal y vuelve a abrir la página.</p>
+    <p class="suave">Un momento, por favor.</p>
+  </section>
+
+  <section data-pantalla="error" hidden>
+    <h1>No se puede marcar ahora</h1>
+    <p id="error-texto" class="aviso aviso-error"></p>
+  </section>
+
+  <section data-pantalla="interno" hidden>
+    <h1>Abre este enlace en Chrome o Safari</h1>
+    <div id="interno-texto" class="aviso aviso-alerta"></div>
+    <a id="interno-chrome" class="boton grande primario" href="#" hidden>Abrir en Chrome</a>
+    <button id="interno-copiar" class="grande" type="button">Copiar el enlace</button>
+    <p id="interno-copiado" class="suave" role="status" aria-live="polite"></p>
+    <p class="suave">Después de copiarlo, abre Chrome (Android) o Safari (iPhone), pega el enlace arriba y entra.</p>
+    <button id="interno-seguir" type="button">Seguir aquí de todos modos</button>
+  </section>
+
+  <section data-pantalla="cedula" hidden>
+    <h1>Vincula tu celular</h1>
+    <p>Esto se hace una sola vez. Escribe tu cédula y te llega un código por WhatsApp.</p>
+    <form id="form-cedula" novalidate>
+      <label for="cedula">Tu número de cédula</label>
+      <input id="cedula" name="cedula" inputmode="numeric" autocomplete="off" maxlength="15" required>
+      <p id="cedula-aviso" class="aviso" hidden role="alert"></p>
+      <button class="grande primario" type="submit" id="btn-cedula">Enviarme el código</button>
+    </form>
+  </section>
+
+  <section data-pantalla="codigo" hidden>
+    <h1>Escribe el código</h1>
+    <p id="codigo-mensaje" class="aviso aviso-info"></p>
+    <form id="form-codigo" novalidate>
+      <label for="codigo">Código de 6 números que te llegó por WhatsApp</label>
+      <input id="codigo" name="codigo" class="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+      <p id="codigo-aviso" class="aviso" hidden role="alert"></p>
+      <button class="grande primario" type="submit" id="btn-codigo">Vincular</button>
+    </form>
+    <div class="botones">
+      <button type="button" id="btn-reenviar">Pedir otro código</button>
+      <button type="button" id="btn-cambiar-cedula">Cambiar la cédula</button>
+    </div>
+  </section>
+
+  <section data-pantalla="inicio" hidden>
+    <h1 id="saludo">Hola</h1>
+    <p id="inicio-aviso" class="aviso" hidden role="status"></p>
+    <p id="sin-qr" class="aviso aviso-alerta" hidden>Para marcar, escanea con la cámara del celular el QR pegado en tu punto de trabajo.</p>
+    <div id="pendientes" class="aviso aviso-alerta" hidden role="status">
+      <p id="pendientes-texto"></p>
+      <button type="button" id="btn-enviar-pendientes">Enviar ahora</button>
+    </div>
+    <div id="fallidas"></div>
+    <div id="botones-tipo"></div>
+    <h2>Hoy</h2>
+    <ul id="lista-hoy" class="lista-hoy"></ul>
+    <p id="hoy-vacio" class="suave">Todavía no has marcado hoy.</p>
+    <p class="suave">Si tienes algún problema, escríbele a Tatiana por WhatsApp ese mismo día.</p>
+  </section>
+
+  <section data-pantalla="camara" hidden>
+    <h1 id="camara-titulo">Toma tu selfie</h1>
+    <p id="gps-estado" class="gps" role="status" aria-live="polite">Buscando tu ubicación…</p>
+    <p id="camara-aviso" class="aviso" hidden role="alert"></p>
+    <div class="video-caja" id="caja-video">
+      <video id="video" class="espejo" playsinline muted autoplay aria-label="Vista de la cámara frontal"></video>
+    </div>
+    <div class="video-caja" id="caja-foto" hidden>
+      <img id="foto" class="espejo" alt="Tu selfie">
+    </div>
+    <button type="button" class="grande primario" id="btn-tomar" disabled>Tomar foto</button>
+    <button type="button" class="grande primario" id="btn-enviar" hidden>Marcar ahora</button>
+    <div class="botones">
+      <button type="button" id="btn-otra" hidden>Tomar otra foto</button>
+      <button type="button" id="btn-cancelar">Cancelar</button>
+    </div>
+  </section>
+
+  <section data-pantalla="resultado" hidden>
+    <div id="resultado-caja" class="confirmacion" role="status" aria-live="assertive">
+      <p class="titulo" id="resultado-titulo"></p>
+      <p class="hora" id="resultado-hora"></p>
+      <p id="resultado-detalle"></p>
+    </div>
+    <ul id="resultado-motivos"></ul>
+    <button type="button" class="grande primario" id="btn-listo">Listo</button>
+  </section>
+</main>
+</body>
+</html>

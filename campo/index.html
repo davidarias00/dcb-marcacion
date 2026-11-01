@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net; media-src 'self' blob:; worker-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <script src="../lib/sin-marco.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#f5efe4">
+  <title>Campo · Dreams Can Bloom</title>
+  <link rel="stylesheet" href="../css/portal.css">
+  <script type="module" src="./campo.js"></script>
+</head>
+<body>
+<main>
+  <header class="marca"><span class="logo">Dreams<br>Can<br>Bloom</span><span class="seccion">Horas de campo</span></header>
+  <noscript><p class="aviso aviso-error">Necesitas activar JavaScript en tu navegador.</p></noscript>
+
+  <section data-pantalla="cargando">
+    <h1>Cargando…</h1>
+    <p class="suave">Si esta pantalla no cambia, revisa la señal y vuelve a abrir la página.</p>
+  </section>
+
+  <section data-pantalla="error" hidden>
+    <h1>No se puede abrir</h1>
+    <p id="error-texto" class="aviso aviso-error"></p>
+    <button type="button" id="btn-salir-error">Salir</button>
+  </section>
+
+  <section data-pantalla="login" hidden>
+    <h1>Entrar</h1>
+    <form id="form-login" novalidate>
+      <label for="correo">Correo</label>
+      <input id="correo" type="email" autocomplete="username" required>
+      <label for="clave">Contraseña</label>
+      <input id="clave" type="password" autocomplete="current-password" required>
+      <p id="login-aviso" class="aviso" hidden role="alert"></p>
+      <button type="submit" class="grande primario" id="btn-login">Entrar</button>
+    </form>
+  </section>
+
+  <section data-pantalla="registro" hidden>
+    <div class="cabecera">
+      <h1>Horas del día</h1>
+      <button type="button" id="btn-salir">Salir</button>
+    </div>
+    <p id="registro-aviso" class="aviso" hidden role="status" aria-live="polite"></p>
+    <div id="pendientes" class="aviso aviso-alerta" hidden role="status">
+      <p id="pendientes-texto"></p>
+      <button type="button" id="btn-enviar-pendientes">Enviar ahora</button>
+    </div>
+    <div id="fallidas"></div>
+
+    <label for="fecha">Fecha</label>
+    <input id="fecha" type="date" required>
+    <p class="suave">Para cada persona: marca si trabajó y escribe las horas extra (puede ser media hora, por ejemplo 1.5). Las horas quedan como propuesta hasta que Tatiana las apruebe.</p>
+
+    <div id="personas"></div>
+
+    <div id="caja-motivo" hidden>
+      <label for="motivo">Cambiaste horas que ya habías enviado. ¿Por qué?</label>
+      <textarea id="motivo" maxlength="300"></textarea>
+    </div>
+    <p id="guardar-aviso" class="aviso" hidden role="alert"></p>
+    <button type="button" class="grande primario" id="btn-guardar">Guardar el día</button>
+  </section>
+</main>
+</body>
+</html>

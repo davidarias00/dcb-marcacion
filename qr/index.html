@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co https://cdn.jsdelivr.net; media-src 'self' blob:; worker-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <script src="../lib/sin-marco.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <title>QR por punto · Dreams Can Bloom</title>
+  <link rel="stylesheet" href="../css/portal.css">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"
+          integrity="sha384-8FWZA6BGMXhsfO+BLtrJK0We6gg5o1JyO8xQm6peWDEUs17ACA5ziE/NIAkl9z2k"
+          crossorigin="anonymous"></script>
+  <script type="module" src="./qr.js"></script>
+</head>
+<body>
+<main>
+  <div class="no-imprimir">
+    <header class="marca"><span class="logo">Dreams<br>Can<br>Bloom</span><span class="seccion">QR por punto</span></header>
+    <h1>Imprimir QR de marcación</h1>
+    <p>Pega la salida de <code>node tools/qr.ts &lt;url_del_portal&gt;</code>. Formato:</p>
+    <pre class="suave">[{ "nombre": "Sala de poscosecha", "version": 1, "url": "https://…/m/?q=&lt;token&gt;" }]</pre>
+    <p class="suave">También sirve <code>"token"</code> en vez de <code>"url"</code>. El QR siempre apunta a la dirección de abajo con el token. La firma no se verifica aquí: solo se dibuja. Cada QR queda en una hoja.</p>
+    <label for="lista">Lista de puntos (JSON)</label>
+    <textarea id="lista" rows="8" spellcheck="false"></textarea>
+    <label for="base">Dirección de la página de marcación</label>
+    <input id="base" type="url">
+    <div class="botones">
+      <button type="button" class="primario" id="btn-dibujar">Dibujar los QR</button>
+      <button type="button" id="btn-imprimir" disabled>Imprimir</button>
+    </div>
+    <div id="aviso" class="aviso" hidden role="status"></div>
+  </div>
+  <div id="hojas"></div>
+</main>
+</body>
+</html>
