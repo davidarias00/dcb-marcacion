@@ -11,8 +11,9 @@ import * as reportes from './reportes.js';
 import * as quincena from './quincena.js';
 import * as efectivo from './efectivo.js';
 import * as captura from './captura.js';
+import * as codigos from './codigos.js';
 
-const PESTANAS = { hoy, alertas, reportes, quincena, efectivo, captura };
+const PESTANAS = { hoy, alertas, reportes, quincena, efectivo, captura, codigos };
 const NOMBRE_ROL = { operaciones: 'Operaciones', pagos: 'Pagos', contador: 'Contador', admin: 'Administración' };
 
 const ctx = { sb: null, uid: null, rol: null, nombre: '', empleados: new Map(), ubicaciones: new Map() };

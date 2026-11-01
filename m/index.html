@@ -40,12 +40,12 @@
 
   <section data-pantalla="cedula" hidden>
     <h1>Vincula tu celular</h1>
-    <p>Esto se hace una sola vez. Escribe tu cédula y te llega un código por WhatsApp.</p>
+    <p>Esto se hace una sola vez. Escribe tu cédula y luego el código que te da Tatiana.</p>
     <form id="form-cedula" novalidate>
       <label for="cedula">Tu número de cédula</label>
       <input id="cedula" name="cedula" inputmode="numeric" autocomplete="off" maxlength="15" required>
       <p id="cedula-aviso" class="aviso" hidden role="alert"></p>
-      <button class="grande primario" type="submit" id="btn-cedula">Enviarme el código</button>
+      <button class="grande primario" type="submit" id="btn-cedula">Continuar</button>
     </form>
   </section>
 
@@ -53,7 +53,7 @@
     <h1>Escribe el código</h1>
     <p id="codigo-mensaje" class="aviso aviso-info"></p>
     <form id="form-codigo" novalidate>
-      <label for="codigo">Código de 6 números que te llegó por WhatsApp</label>
+      <label for="codigo">Código de 6 números</label>
       <input id="codigo" name="codigo" class="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
       <p id="codigo-aviso" class="aviso" hidden role="alert"></p>
       <button class="grande primario" type="submit" id="btn-codigo">Vincular</button>

@@ -1,7 +1,7 @@
 // Pantalla de marcación (QR + selfie en vivo + GPS). Contrato: docs/11-api-portal.md.
 // No usa supabase-js: llama las edge functions con fetch. No escribe datos personales en consola.
 
-import { SUPABASE_ANON_KEY, configLista, urlFunciones } from '../config.js';
+import { MODO_CODIGO, SUPABASE_ANON_KEY, configLista, urlFunciones } from '../config.js';
 import { $, el, vaciar, mostrarPantalla, aviso } from '../lib/dom.js';
 import { detectarNavegadorInterno, instruccionesAbrir, urlIntentChrome } from '../lib/navegador.js';
 import { ETIQUETAS, TIPOS_VISIBLES, sugerirTipo, leerTokenQR, textoMotivo, cuerpoMarcar } from '../lib/marcacion.js';
@@ -140,8 +140,21 @@ $('#form-cedula').addEventListener('submit', async (ev) => {
     $('#cedula').focus();
     return;
   }
+  // Piloto: el código lo da Tatiana desde el panel; no se pide por WhatsApp (en la demostración sí,
+  // porque ahí el servidor es simulado).
+  if (MODO_CODIGO === 'panel' && !DEMO) return pantallaCodigoDelPanel(cedula);
   await solicitarCodigo(cedula, $('#btn-cedula'), av);
 });
+
+function pantallaCodigoDelPanel(cedula) {
+  cedulaActual = cedula;
+  aviso($('#cedula-aviso'), '', 'info');
+  $('#codigo-mensaje').textContent = 'Pídele a Tatiana tu código de 6 números y escríbelo aquí. Es solo esta vez.';
+  $('#codigo').value = '';
+  aviso($('#codigo-aviso'), '', 'info');
+  $('#btn-reenviar').hidden = true;
+  mostrarPantalla('codigo');
+}
 
 async function solicitarCodigo(cedula, boton, av) {
   boton.disabled = true;
@@ -497,7 +510,7 @@ function mostrarResultado(datos, opciones = {}) {
     $('#resultado-hora').textContent = datos.hora || '';
     $('#resultado-detalle').textContent = [
       datos.ubicacion ? `En ${datos.ubicacion}.` : '',
-      revision ? 'Quedó en revisión: Tatiana la revisa. No tienes que hacer nada más.' : 'Te llega el comprobante por WhatsApp.',
+      revision ? 'Quedó en revisión: Tatiana la revisa. No tienes que hacer nada más.' : 'Quedó guardada.',
     ].filter(Boolean).join(' ');
     if (revision && Array.isArray(datos.motivos)) {
       for (const c of datos.motivos) motivos.append(el('li', { text: textoMotivo(c) }));
