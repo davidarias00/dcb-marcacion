@@ -13,8 +13,11 @@ import * as quincena from './quincena.js';
 import * as efectivo from './efectivo.js';
 import * as captura from './captura.js';
 import * as codigos from './codigos.js';
+import * as personas from './personas.js';
 
-const PESTANAS = { hoy, rango, alertas, reportes, quincena, efectivo, captura, codigos };
+const PESTANAS = { hoy, rango, alertas, reportes, quincena, efectivo, captura, codigos, personas };
+// Pestañas con listas de personas: se vuelven a armar cada vez que se abren (Personas puede haber cambiado la lista).
+const SIEMPRE_FRESCAS = new Set(['captura', 'codigos']);
 const NOMBRE_ROL = { operaciones: 'Operaciones', pagos: 'Pagos', contador: 'Contador', admin: 'Administración' };
 
 const ctx = { sb: null, uid: null, rol: null, nombre: '', empleados: new Map(), ubicaciones: new Map() };
@@ -85,6 +88,7 @@ async function abrir(nombre) {
   for (const p of $$('[data-tabpanel]')) p.hidden = p.dataset.tabpanel !== nombre;
   if (location.hash !== `#${nombre}`) history.replaceState(null, '', `#${nombre}`);
   const cont = $(`[data-tabpanel="${nombre}"]`);
+  if (SIEMPRE_FRESCAS.has(nombre)) cargadas.delete(nombre);
   if (!cargadas.has(nombre)) {
     cargadas.add(nombre);
     try {

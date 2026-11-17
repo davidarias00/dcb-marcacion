@@ -1,10 +1,14 @@
 // Pestaña Por fechas: cómo va la marcación en un rango (este mes, la quincena o el que se elija).
 // Solo muestra asistencia (marcas y qué falta); las horas y la plata las calcula el motor.
-import { el, vaciar } from '../lib/dom.js';
+import { el, vaciar, aviso } from '../lib/dom.js';
 import {
   fechaBogota, horaBogota, rangoFechasBogota, diasEntre, inicioMes, inicioQuincena, fechaCorta,
 } from '../lib/fechas.js';
 import { resumenRango } from '../lib/resumen.js';
+import { ETIQUETAS } from '../lib/marcacion.js';
+import { filaCorreccion } from '../lib/correccion.js';
+import { nuevoId } from '../lib/ids.js';
+import { puede } from '../lib/permisos.js';
 import { nombreEmpleado, nombreUbicacion, mostrarError, nodoAviso, chip, tabla, conBoton } from './comun.js';
 
 const MAX_DIAS = 93;
@@ -45,7 +49,7 @@ export async function montar(ctx, cont) {
       btn),
     av, resultado,
   );
-  const cargar = () => conBoton(btn, () => pintar(ctx, desde.value, hasta.value, resultado, av));
+  const cargar = () => conBoton(btn, () => pintar(ctx, desde.value, hasta.value, resultado, av, cargar));
   btn.addEventListener('click', cargar);
   await cargar();
 }
@@ -91,12 +95,13 @@ function estadoChips(est) {
   const r = [];
   if (est.falta && TEXTO_FALTA[est.falta]) { const [t, c] = TEXTO_FALTA[est.falta]; r.push(chip(t, c)); }
   else r.push(chip('Completo', 'verde'));
+  if (est.repetidas) r.push(' ', chip('Marca repetida', 'rojo'));
   if (est.revision) r.push(' ', chip('En revisión', 'amarillo'));
   if (est.diferida) r.push(' ', chip('Diferida', 'amarillo'));
   return r;
 }
 
-async function pintar(ctx, fDesde, fHasta, cont, av) {
+async function pintar(ctx, fDesde, fHasta, cont, av, recargar) {
   vaciar(cont);
   let rango;
   let dias;
@@ -165,13 +170,53 @@ async function pintar(ctx, fDesde, fHasta, cont, av) {
     cont.append(el('p', { class: 'suave', text: 'No hay marcaciones en este rango.' }));
     return;
   }
-  cont.append(tabla(
-    ['Día', 'Persona', 'Entrada', 'Salida', 'Estado'],
-    r.detalle.map((d) => el('tr', {},
+  const corrige = puede(ctx.rol, 'captura_degradada');
+  if (corrige) cont.append(el('p', { class: 'suave', text: 'Con "Marcas" ves cada marca del día y puedes anular una repetida o corregir su hora. Siempre con motivo; la marca original no se borra.' }));
+  const filas = [];
+  for (const d of r.detalle) {
+    const sub = el('tr', { hidden: true }, el('td', { colspan: 6 }));
+    const b = el('button', { type: 'button', text: 'Marcas' });
+    b.addEventListener('click', () => {
+      sub.hidden = !sub.hidden;
+      if (!sub.hidden) pintarMarcas(ctx, marcas.filter((m) => m.empleado_id === d.empleadoId && fechaBogota(new Date(m.ts_efectivo)) === d.fecha), sub.firstChild, corrige, recargar);
+    });
+    filas.push(el('tr', {},
       el('td', { text: fechaCorta(d.fecha) }),
       el('td', { text: nombreEmpleado(ctx, d.empleadoId) }),
       el('td', { text: hora(d.estado.entrada) }),
       el('td', { text: hora(d.estado.salida) }),
-      el('td', {}, d.fecha === hoy && d.estado.falta === 'salida' ? chip('Jornada abierta', null) : estadoChips(d.estado)))),
-  ));
+      el('td', {}, d.fecha === hoy && d.estado.falta === 'salida' ? chip('Jornada abierta', null) : estadoChips(d.estado)),
+      el('td', {}, b)), sub);
+  }
+  cont.append(tabla(['Día', 'Persona', 'Entrada', 'Salida', 'Estado', ''], filas));
+}
+
+// Marcas de una persona en un día, con anular y corregir la hora (registro nuevo con corrige_a).
+function pintarMarcas(ctx, lista, cont, corrige, recargar) {
+  vaciar(cont);
+  for (const m of lista.sort((a, b) => Date.parse(a.ts_efectivo) - Date.parse(b.ts_efectivo))) {
+    const fila = el('div', { class: 'tarjeta' },
+      el('strong', { text: `${ETIQUETAS[m.tipo] ?? m.tipo} ${hora(m.ts_efectivo)}` }),
+      ' ', m.origen === 'qr' ? chip('QR', 'verde') : chip('Panel', null),
+      m.estado === 'revision' ? [' ', chip('En revisión', 'amarillo')] : null);
+    if (corrige) {
+      const nuevaHora = el('input', { type: 'time', value: hora(m.ts_efectivo), 'aria-label': 'Hora correcta' });
+      const motivo = el('input', { type: 'text', maxlength: 500, placeholder: 'Motivo (obligatorio)', 'aria-label': 'Motivo' });
+      const avm = nodoAviso();
+      const clave = nuevoId();
+      const enviar = (accion, boton) => conBoton(boton, async () => {
+        const r = filaCorreccion(m, { accion, fecha: fechaBogota(new Date(m.ts_efectivo)), hora: nuevaHora.value, motivo: motivo.value, uid: ctx.uid, clave });
+        if (r.error) return aviso(avm, r.error, 'error');
+        const { error } = await ctx.sb.from('marcaciones').insert(r.fila);
+        if (error) return mostrarError(avm, error);
+        await recargar();
+      });
+      const anular = el('button', { type: 'button', text: 'Anular esta marca' });
+      const cambiar = el('button', { type: 'button', text: 'Corregir la hora' });
+      anular.addEventListener('click', () => enviar('anular', anular));
+      cambiar.addEventListener('click', () => enviar('hora', cambiar));
+      fila.append(el('div', { class: 'botones' }, nuevaHora, motivo, cambiar, anular), avm);
+    }
+    cont.append(fila);
+  }
 }
