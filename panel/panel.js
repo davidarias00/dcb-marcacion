@@ -6,6 +6,7 @@ import { $, $$, mostrarPantalla, aviso } from '../lib/dom.js';
 import { ROLES_PANEL } from '../lib/permisos.js';
 import { cargarMaestros } from './comun.js';
 import * as hoy from './hoy.js';
+import * as rango from './rango.js';
 import * as alertas from './alertas.js';
 import * as reportes from './reportes.js';
 import * as quincena from './quincena.js';
@@ -13,7 +14,7 @@ import * as efectivo from './efectivo.js';
 import * as captura from './captura.js';
 import * as codigos from './codigos.js';
 
-const PESTANAS = { hoy, alertas, reportes, quincena, efectivo, captura, codigos };
+const PESTANAS = { hoy, rango, alertas, reportes, quincena, efectivo, captura, codigos };
 const NOMBRE_ROL = { operaciones: 'Operaciones', pagos: 'Pagos', contador: 'Contador', admin: 'Administración' };
 
 const ctx = { sb: null, uid: null, rol: null, nombre: '', empleados: new Map(), ubicaciones: new Map() };
