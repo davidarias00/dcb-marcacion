@@ -35,15 +35,19 @@ async function pintar(ctx, p, cont, recargar) {
   vaciar(cont);
   const av = nodoAviso();
   cont.append(av);
-  const [aud, nomina, archivos] = await Promise.all([
+  const [aud, nomina, archivos, items, liqs] = await Promise.all([
     ctx.sb.from('auditorias').select('id, secuencia, periodo_version, archivo_id, auditor, resultado, hallazgos, version_auditor, created_at')
       .eq('periodo_id', p.id).eq('periodo_version', p.version).order('secuencia'),
     ctx.sb.from('nomina_a_pagar').select('id, empleado_id, frente, medio_pago, valor, anotaciones, pagado, pagado_ts, periodo_version')
       .eq('periodo_id', p.id),
     ctx.sb.from('archivos_pago').select('id, periodo_version, tipo, secuencia, layout, layout_oficial, storage_path, n_registros, estado, confirmado_por, confirmado_ts, segunda_aprobacion_requerida, segunda_aprobacion_por, segunda_aprobacion_ts, descargado_ts, subido_ts, created_at')
       .eq('periodo_id', p.id).order('created_at'),
+    ctx.sb.from('prenomina_items').select('tipo, severidad, empleado_id, fecha, detalle')
+      .eq('periodo_id', p.id).eq('periodo_version', p.version),
+    ctx.sb.from('liquidaciones').select('empleado_id, frente, conceptos, bruto, descuentos, neto, anotaciones')
+      .eq('periodo_id', p.id).eq('periodo_version', p.version),
   ]);
-  for (const r of [aud, nomina, archivos]) if (r.error) return mostrarError(av, r.error);
+  for (const r of [aud, nomina, archivos, items, liqs]) if (r.error) return mostrarError(av, r.error);
   const audIds = aud.data.map((a) => a.id);
   let resoluciones = [];
   if (audIds.length) {
@@ -57,7 +61,11 @@ async function pintar(ctx, p, cont, recargar) {
     el('h3', {}, `Quincena ${p.inicio} a ${p.fin} `, chip(p.estado), ` versión ${p.version}`),
     el('p', { text: `Horas del ${p.horas_desde} al ${p.corte}. Pago por banco: ${p.fecha_pago}. Efectivo: ${p.fecha_pago_efectivo}.` }),
     p.snapshot_hash ? el('p', { class: 'suave', text: `Snapshot congelado: ${p.snapshot_hash}` }) : null,
-    accionPrenomina(ctx, p, recargar)));
+    accionPrenomina(ctx, p, items.data, recargar),
+    accionReabrir(ctx, p, recargar)));
+
+  // Pre-nómina por excepciones: lo que calcula el sistema por persona y lo que se sale de lo normal.
+  cont.append(el('h3', { text: 'Pre-nómina' }), bloquePrenomina(ctx, p, items.data, liqs.data));
 
   // Auditorías de horas (sin archivo).
   cont.append(el('h3', { text: 'Auditoría de horas (H1 a H4)' }));
@@ -77,9 +85,13 @@ async function pintar(ctx, p, cont, recargar) {
   }
 }
 
-function accionPrenomina(ctx, p, recargar) {
+function accionPrenomina(ctx, p, items, recargar) {
   if (p.estado !== 'cerrado' || !puede(ctx.rol, 'aprobar_prenomina')) return null;
   const av = nodoAviso();
+  const bloquean = items.filter((i) => i.severidad === 'bloquea').length;
+  if (bloquean) {
+    return el('p', { class: 'aviso aviso-error', text: `No se puede aprobar: ${bloquean} ${bloquean === 1 ? 'excepción bloquea' : 'excepciones bloquean'} (ver Pre-nómina). Corrige el origen y reabre la quincena.` });
+  }
   const b = el('button', { type: 'button', class: 'primario', text: 'Aprobar la pre-nómina' });
   b.addEventListener('click', () => conBoton(b, async () => {
     if (!confirm('¿Apruebas la pre-nómina de esta quincena? Revisa antes las auditorías y la nómina a pagar.')) return;
@@ -88,6 +100,71 @@ function accionPrenomina(ctx, p, recargar) {
     await recargar();
   }));
   return el('div', {}, b, av);
+}
+
+// Reabrir con motivo (crea versión nueva): para corregir marcaciones o datos después del cierre.
+function accionReabrir(ctx, p, recargar) {
+  if (!['cerrado', 'aprobado'].includes(p.estado) || ctx.rol !== 'operaciones') return null;
+  const id = `reabrir-${p.id}`;
+  const motivo = el('textarea', { id, maxlength: 500 });
+  const av = nodoAviso();
+  const b = el('button', { type: 'button', text: 'Reabrir la quincena' });
+  b.addEventListener('click', () => conBoton(b, async () => {
+    const m = textoLimpio(motivo.value);
+    if (!motivoValido(m, 10)) return aviso(av, 'Escribe el motivo (al menos 10 caracteres).', 'error');
+    if (!confirm('¿Reabres la quincena? Se crea una versión nueva y hay que volver a cerrarla, auditarla y aprobarla.')) return;
+    const { error } = await ctx.sb.rpc('reabrir_periodo', { p_periodo_id: p.id, p_motivo: m });
+    if (error) return mostrarError(av, error);
+    await recargar();
+  }));
+  return el('details', {}, el('summary', { text: 'Reabrir para corregir' }),
+    el('p', { class: 'suave', text: 'Úsalo después de corregir marcaciones o datos. David vuelve a cerrar y a auditar la versión nueva.' }),
+    el('label', { for: id, text: 'Motivo' }), motivo, b, av);
+}
+
+const TEXTO_TIPO = {
+  falta_tarifa: 'Falta una tarifa', sin_marcaciones: 'Sin marcaciones', jornada_atipica: 'Jornada atípica',
+  novedad_pendiente: 'Novedad sin aprobar', variacion: 'Variación frente a la quincena anterior',
+  valor_pendiente_validacion: 'Valor sin validar', olvido_entrada: 'Olvido de entrada', olvido_salida: 'Olvido de salida',
+  extras_diarias: 'Muchas horas extra en el día', extras_semanales: 'Muchas horas extra en la semana',
+};
+
+function bloquePrenomina(ctx, p, items, liqs) {
+  if (!items.length && !liqs.length) {
+    return el('p', { class: 'suave', text: p.estado === 'abierto' ? 'Se calcula cuando se cierra la quincena.' : 'Todavía no hay resultado del motor para esta versión.' });
+  }
+  const caja = el('div');
+  const orden = [...items].sort((a, b) => (a.severidad === b.severidad ? 0 : a.severidad === 'bloquea' ? -1 : 1)
+    || nombreEmpleado(ctx, a.empleado_id).localeCompare(nombreEmpleado(ctx, b.empleado_id)) || String(a.fecha).localeCompare(String(b.fecha)));
+  const bloquean = orden.filter((i) => i.severidad === 'bloquea').length;
+  caja.append(el('p', {}, `${bloquean} bloquean · ${orden.length - bloquean} para revisar`));
+  if (orden.length) {
+    caja.append(tabla(['', 'Persona', 'Fecha', 'Qué pasa'], orden.map((i) => el('tr', {},
+      el('td', {}, i.severidad === 'bloquea' ? chip('Bloquea', 'rojo') : chip('Revisar', 'amarillo')),
+      el('td', { text: i.empleado_id ? nombreEmpleado(ctx, i.empleado_id) : '—' }),
+      el('td', { text: i.fecha ?? '—' }),
+      el('td', { text: `${TEXTO_TIPO[i.tipo] ?? i.tipo}: ${i.detalle}` })))));
+  }
+  const porPersona = new Map(liqs.map((l) => [l.empleado_id, l]));
+  const personas = Array.from(ctx.empleados.values()).filter((e) => e.activo || porPersona.has(e.id))
+    .sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo));
+  // El motor guarda las horas en minutos y los días como cantidad: se muestran en horas y días.
+  const texto = (c) => {
+    const nombre = String(c.concepto ?? c.codigo ?? '').replace(/_/g, ' ');
+    const n = Number(c.cantidad);
+    if (!Number.isFinite(n)) return nombre;
+    return /^hora/.test(nombre) ? `${nombre}: ${String(Math.round((n / 60) * 100) / 100).replace('.', ',')} h` : `${nombre}: ${n}`;
+  };
+  caja.append(el('p', { class: 'suave', text: 'Lo que calcula el sistema por persona. Vinculados: solo horas (el neto sale de Begranda).' }),
+    tabla(['Persona', 'Frente', 'Conceptos', { text: 'Neto', class: 'num' }, 'Anotaciones'], personas.map((e) => {
+      const l = porPersona.get(e.id);
+      if (!l) return el('tr', {}, el('td', { text: e.nombre_completo }), el('td', { text: e.frente }),
+        el('td', {}, chip(e.frente === 'A' ? 'Horas a Begranda' : 'Sin liquidar', e.frente === 'A' ? null : 'rojo')), el('td', { class: 'num', text: '—' }), el('td', { text: '' }));
+      const conceptos = (l.conceptos?.conceptos ?? []).map(texto).join(' · ');
+      return el('tr', {}, el('td', { text: e.nombre_completo }), el('td', { text: l.frente }), el('td', { text: conceptos || '—' }),
+        el('td', { class: 'num', text: formatoPesos(l.neto) }), el('td', { text: (l.anotaciones || []).join('; ') }));
+    })));
+  return caja;
 }
 
 function textoHallazgo(h) {
