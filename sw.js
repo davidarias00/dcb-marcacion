@@ -2,7 +2,7 @@
 // Red primero (con tiempo límite) y, si no hay red, lo último guardado.
 // Solo toca GET del mismo sitio y de cdn.jsdelivr.net; nunca las llamadas a Supabase.
 
-const CACHE = 'dcb-portal-v2';
+const CACHE = 'dcb-portal-v3';
 const PRECARGA = [
   './', './config.js', './css/portal.css',
   './lib/navegador.js', './lib/marcacion.js', './lib/imagen.js', './lib/ids.js', './lib/fechas.js',

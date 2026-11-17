@@ -440,11 +440,11 @@ $('#btn-enviar').addEventListener('click', async () => {
   $('#btn-cancelar').disabled = true;
   const textoOriginal = bEnviar.textContent;
   bEnviar.textContent = 'Tomando la ubicación…';
-  const { posicion } = await marcacion.gps.esperar();
+  const { posicion, error: gpsError } = await marcacion.gps.esperar();
   bEnviar.textContent = 'Enviando…';
 
   const base = {
-    qr, tipo: marcacion.tipo, idempotencyKey: marcacion.idempotencyKey, posicion,
+    qr, tipo: marcacion.tipo, idempotencyKey: marcacion.idempotencyKey, posicion, gpsError,
     selfieBase64: marcacion.foto.base64, tsDispositivo: marcacion.tsDispositivo,
   };
   const m = marcacion;

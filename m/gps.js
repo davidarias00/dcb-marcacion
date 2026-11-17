@@ -1,4 +1,6 @@
 // Ubicación en el momento de marcar: alta precisión, hasta ~15 s, se queda con la mejor lectura.
+// En paralelo pide la ubicación aproximada (wifi y antenas), que llega rápido aunque el GPS no alcance
+// a ubicar el celular bajo techo. Si al final no hay ninguna lectura, informa por qué (error).
 import { mejorPosicion } from '../lib/marcacion.js';
 
 export const TIMEOUT_MS = 15000;
@@ -36,13 +38,33 @@ export function iniciarGPS(alCambiar) {
         if (posicion.precision <= PRECISION_BUENA_M) terminar();
       },
       (e) => {
-        error = e.code === 1 ? 'denegada' : e.code === 3 ? 'tiempo' : 'no_disponible';
-        if (e.code === 1) terminar();
+        // Con una lectura ya tomada (por ejemplo la aproximada), el error del GPS no importa.
+        if (!posicion) error = e.code === 1 ? 'denegada' : e.code === 3 ? 'tiempo' : 'no_disponible';
+        if (e.code === 1 && !posicion) terminar();
         else alCambiar({ posicion, error, terminado });
       },
       { enableHighAccuracy: true, timeout: TIMEOUT_MS, maximumAge: 0 },
     );
-    timer = setTimeout(terminar, TIMEOUT_MS);
+    // Respaldo: ubicación aproximada. Solo cuenta si es mejor que lo que ya hay.
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        if (terminado) return;
+        posicion = mejorPosicion(posicion, {
+          lat: p.coords.latitude, lng: p.coords.longitude, precision: p.coords.accuracy,
+        });
+        error = null;
+        alCambiar({ posicion, error, terminado });
+      },
+      (e) => {
+        if (terminado || posicion) return;
+        if (e.code === 1) { error = 'denegada'; terminar(); }
+      },
+      { enableHighAccuracy: false, timeout: TIMEOUT_MS, maximumAge: 120000 },
+    );
+    timer = setTimeout(() => {
+      if (!posicion && !error) error = 'tiempo';
+      terminar();
+    }, TIMEOUT_MS);
   }
 
   return {
