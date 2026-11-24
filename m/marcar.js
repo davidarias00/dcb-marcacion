@@ -322,12 +322,23 @@ $('#btn-enviar-pendientes').addEventListener('click', async () => {
 async function enviarDeCola(item) {
   const t = token();
   if (!t) return { accion: 'detener', motivo: 'sin_token' };
-  const r = await api.llamar('marcar', { cuerpo: item.cuerpo, dispositivo: t });
+  const r = await api.llamar('marcar', { cuerpo: { ...item.cuerpo, ts_envio_dispositivo: new Date().toISOString() }, dispositivo: t });
   if (r.tipo === 'ok') return { accion: 'ok', respuesta: r.datos };
   if (r.tipo === 'red') return { accion: 'reintentar' };
   if (esDispositivoInvalido(r)) return { accion: 'detener', motivo: 'dispositivo' };
   if (esDefinitivo(r)) return { accion: 'descartar', mensaje: r.mensaje };
   return { accion: 'reintentar' };
+}
+
+// Envío en segundo plano (Background Sync): Chrome en Android despierta al service worker cuando
+// vuelve la señal. Safari no lo tiene: ahí se envía al abrir la página, como antes.
+function pedirEnvioEnSegundoPlano() {
+  if (DEMO) return;
+  try {
+    navigator.serviceWorker?.ready
+      .then((reg) => (reg.sync ? reg.sync.register('dcb-cola') : null))
+      .catch(() => {});
+  } catch { /* sin service worker */ }
 }
 
 let temporizadorCola = null;
@@ -476,7 +487,10 @@ $('#btn-enviar').addEventListener('click', async () => {
       await cola.agregar({
         id: m.idempotencyKey, tipo: m.tipo, fecha, hora,
         cuerpo: cuerpoMarcar({ ...base, diferida: true }),
+        // Para que el service worker la envíe solo, aunque la página esté cerrada (Android).
+        envio: DEMO ? null : { url: `${urlFunciones()}/marcar`, apikey: SUPABASE_ANON_KEY, dispositivo: token() },
       });
+      pedirEnvioEnSegundoPlano();
     } catch { guardada = false; }
     terminarMarcacion();
     if (!guardada) {

@@ -2,11 +2,13 @@
 // Red primero (con tiempo límite) y, si no hay red, lo último guardado.
 // Solo toca GET del mismo sitio y de cdn.jsdelivr.net; nunca las llamadas a Supabase.
 
-const CACHE = 'dcb-portal-v3';
+importScripts('./lib/envio-cola-sw.js');
+
+const CACHE = 'dcb-portal-v4';
 const PRECARGA = [
   './', './config.js', './css/portal.css',
   './lib/navegador.js', './lib/marcacion.js', './lib/imagen.js', './lib/ids.js', './lib/fechas.js',
-  './lib/cola.js', './lib/api.js', './lib/demo.js', './lib/dom.js', './lib/validacion.js', './lib/supabase.js',
+  './lib/cola.js', './lib/envio-cola-sw.js', './lib/api.js', './lib/demo.js', './lib/dom.js', './lib/validacion.js', './lib/supabase.js',
   './m/', './m/marcar.js', './m/camara.js', './m/gps.js',
   './campo/', './campo/campo.js',
 ];
@@ -57,3 +59,13 @@ async function redPrimero(req, navegacion) {
   if (guardado) return guardado;
   return red.catch(() => new Response('Sin conexión', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }));
 }
+
+// Background Sync (Chrome en Android): envía las marcaciones guardadas sin señal apenas vuelve la
+// conexión, aunque la página esté cerrada. Si queda algo pendiente, el navegador lo reintenta.
+self.addEventListener('sync', (ev) => {
+  if (ev.tag !== 'dcb-cola') return;
+  ev.waitUntil(
+    self.enviarColaSW({ almacen: self.almacenIndexedDBSW(self.indexedDB), fetchImpl: (u, o) => fetch(u, o) })
+      .then((r) => { if (r.pendientes > 0) throw new Error('Quedan marcaciones por enviar'); }),
+  );
+});
