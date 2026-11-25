@@ -5,7 +5,7 @@ import { horaBogota, fechaBogota } from '../lib/fechas.js';
 // Maestros que usan varias pestañas (RLS ya filtra lo que cada rol ve).
 export async function cargarMaestros(ctx) {
   const [emp, ubi] = await Promise.all([
-    ctx.sb.from('empleados').select('id, nombre_completo, frente, grupo, ubicacion_base_id, activo, medio_pago').order('nombre_completo'),
+    ctx.sb.from('empleados').select('id, nombre_completo, frente, grupo, ubicacion_base_id, activo, medio_pago, cargo').order('nombre_completo'),
     ctx.sb.from('ubicaciones').select('id, nombre, tipo, activa, permite_marcar').order('nombre'),
   ]);
   if (emp.error) throw emp.error;
@@ -13,6 +13,9 @@ export async function cargarMaestros(ctx) {
   ctx.empleados = new Map(emp.data.map((e) => [e.id, e]));
   ctx.ubicaciones = new Map(ubi.data.map((u) => [u.id, u]));
 }
+
+// Las esporádicas no marcan a diario (sus días se registran en Personas): no se esperan en Hoy ni en Por fechas.
+export const esEsporadica = (e) => e.cargo === 'Esporádica';
 
 export function nombreEmpleado(ctx, id) {
   const e = ctx.empleados.get(id);

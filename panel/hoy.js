@@ -2,7 +2,7 @@
 import { el, vaciar } from '../lib/dom.js';
 import { fechaBogota, horaBogota, rangoDiaBogota } from '../lib/fechas.js';
 import { resumenDia } from '../lib/resumen.js';
-import { nombreEmpleado, nombreUbicacion, mostrarError, nodoAviso, chip, tabla, conBoton } from './comun.js';
+import { nombreEmpleado, nombreUbicacion, mostrarError, nodoAviso, chip, tabla, conBoton, esEsporadica } from './comun.js';
 
 const TEXTO_FALTA = {
   todo: ['No ha marcado', 'rojo'],
@@ -56,7 +56,7 @@ async function pintar(ctx, fecha, cont, av) {
 
   // Campo no marca con QR (lo registra Alexander): no se cuenta como faltante.
   const empleados = Array.from(ctx.empleados.values())
-    .filter((e) => e.activo && e.ubicacion_base_id && e.grupo !== 'campo');
+    .filter((e) => e.activo && e.ubicacion_base_id && e.grupo !== 'campo' && !esEsporadica(e));
   const r = resumenDia(empleados, data);
   cont.append(el('p', { class: 'aviso aviso-info', text: `Marcaron ${r.marcaron} de ${r.total} personas.` }));
   if (r.faltan.length) {

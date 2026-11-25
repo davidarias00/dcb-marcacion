@@ -9,7 +9,7 @@ import { ETIQUETAS } from '../lib/marcacion.js';
 import { filaCorreccion } from '../lib/correccion.js';
 import { nuevoId } from '../lib/ids.js';
 import { puede } from '../lib/permisos.js';
-import { nombreEmpleado, nombreUbicacion, mostrarError, nodoAviso, chip, tabla, conBoton } from './comun.js';
+import { nombreEmpleado, nombreUbicacion, esEsporadica, mostrarError, nodoAviso, chip, tabla, conBoton } from './comun.js';
 
 const MAX_DIAS = 93;
 const PAGINA = 1000;
@@ -127,9 +127,9 @@ async function pintar(ctx, fDesde, fHasta, cont, av, recargar) {
   }
   av.hidden = true;
 
-  // Campo no marca con QR (lo registra Alexander): no se cuenta.
+  // Campo no marca con QR (lo registra Alexander) y las esporádicas se registran en Personas: no se cuentan.
   const empleados = Array.from(ctx.empleados.values())
-    .filter((e) => e.activo && e.ubicacion_base_id && e.grupo !== 'campo')
+    .filter((e) => e.activo && e.ubicacion_base_id && e.grupo !== 'campo' && !esEsporadica(e))
     .sort((a, b) => nombreUbicacion(ctx, a.ubicacion_base_id).localeCompare(nombreUbicacion(ctx, b.ubicacion_base_id))
       || a.nombre_completo.localeCompare(b.nombre_completo));
   const hoy = fechaBogota();
